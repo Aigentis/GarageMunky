@@ -114,10 +114,8 @@ Contributions are welcome! Please follow these steps:
 
 This project is the intellectual property of Kelvin Lee. All rights reserved. No parts of this code may be copied or transferred without explicit written permission.
 
-## 📞 Contact admin@aigentis.io
-
-For any inquiries, please reach out to the project maintainers at contact@garagemunky.com
-
+## 📞 Contact 
+For any inquiries, please reach out to the project maintainers at admin@aigenits.io
 ---
 
 © 2025 Kelvin Lee. All Rights Reserved. GarageMunky™ is a proprietary application with all associated code and assets fully protected under copyright law.
