@@ -1,73 +1,123 @@
-# Welcome to your Lovable project
+# GarageMunky - Modern Vehicle Management Platform
 
-## Project info
+![GarageMunky](https://via.placeholder.com/800x400?text=GarageMunky)
 
-**URL**: https://lovable.dev/projects/88cb7e06-c951-4e6c-b07d-13bc02196782
+## 🚗 Project Overview
 
-## How can I edit this code?
+GarageMunky is a mobile application built to modernize vehicle management for car owners and garage operators across the UK. The app connects car owners with local garages by leveraging an AI-powered platform that delivers real-time vehicle data, smart appointment scheduling, and interactive communication tools.
 
-There are several ways of editing your application.
+### Key Features
 
-**Use Lovable**
+- **Real-time Vehicle Data**: Access MOT status, tax details, registration information, and more via UK GOV APIs
+- **AI-Powered Booking Assistant**: Get intelligent scheduling recommendations based on vehicle maintenance history
+- **GPT-Powered Diagnostic Tool**: Diagnose vehicle issues through natural language conversation
+- **Secure Payments**: Process transactions safely with Stripe integration
+- **Multi-Channel Messaging**: Receive notifications via WhatsApp and SMS
+- **Garage Locator**: Find nearby garages with Google Maps integration
+- **Role-Based Access**: Tailored experiences for car owners, garage operators, and administrators
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/88cb7e06-c951-4e6c-b07d-13bc02196782) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+### Frontend
+- **Framework**: React Native with TypeScript
+- **Styling**: Tailwind CSS and Shadcn UI
+- **State Management**: React Context API
 
-**Use your preferred IDE**
+### Backend & Services
+- **Authentication & Database**: Appwrite
+- **Vehicle Data**: UK GOV APIs
+- **AI Features**: OpenAI GPT-4 Turbo
+- **Payment Processing**: Stripe
+- **Location Services**: Google Maps API
+- **Messaging**: WhatsApp API with Twilio SMS fallback
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Node.js v20.2.1 or higher
+- npm or yarn package manager
+- Appwrite account (for backend services)
+- API keys for: UK GOV, OpenAI, Stripe, Google Maps, WhatsApp/Twilio
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/GarageMunky.git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project directory
+cd GarageMunky
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Set up environment variables
+# Create a .env file in the root directory with the following variables:
+APPWRITE_ENDPOINT=your-appwrite-endpoint
+APPWRITE_PROJECT=your-appwrite-project-id
+UKGOV_API_KEY=your-ukgov-api-key
+STRIPE_PUBLIC_KEY=your-stripe-public-key
+STRIPE_SECRET_KEY=your-stripe-secret-key
+TWILIO_API_KEY=your-twilio-api-key
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+OPENAI_API_KEY=your-openai-api-key
+
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📱 Application Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+GarageMunky/
+├── src/
+│   ├── components/       # Reusable UI components
+│   ├── screens/          # Screen components for navigation
+│   ├── services/         # API and service integrations
+│   ├── navigation/       # Navigation configuration
+│   └── utils/            # Helper functions and utilities
+├── public/               # Static assets
+├── documents/            # Project documentation
+└── ...                   # Configuration files
+```
 
-**Use GitHub Codespaces**
+## 🔄 Development Workflow
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The project follows a phased implementation approach:
 
-## What technologies are used for this project?
+1. **Environment Setup**: Project initialization, directory structure, environment variables
+2. **Frontend Development**: UI components, screens, and styling
+3. **Backend Development**: Appwrite setup, database schema, API integrations
+4. **Integration**: Connecting frontend and backend components
+5. **Deployment**: Production preparation and launch
 
-This project is built with:
+## 🔒 Security & Compliance
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+GarageMunky prioritizes security and compliance with:
 
-## How can I deploy this project?
+- **GDPR and UK Data Protection Act 2018** compliance for personal data
+- **PCI DSS** standards for payment processing
+- **OAuth authentication** via trusted providers (Google, Apple)
+- **Secure API communications** with proper encryption
 
-Simply open [Lovable](https://lovable.dev/projects/88cb7e06-c951-4e6c-b07d-13bc02196782) and click on Share -> Publish.
+## 🤝 Contributing
 
-## Can I connect a custom domain to my Lovable project?
+Contributions are welcome! Please follow these steps:
 
-Yes it is!
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📄 License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is the intellectual property of Kelvin Lee. All rights reserved. No parts of this code may be copied or transferred without explicit written permission.
+
+## 📞 Contact admin@aigentis.io
+
+For any inquiries, please reach out to the project maintainers at contact@garagemunky.com
+
+---
+
+© 2025 Kelvin Lee. All Rights Reserved. GarageMunky™ is a proprietary application with all associated code and assets fully protected under copyright law.
