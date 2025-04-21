@@ -1,0 +1,25 @@
+flowchart TD
+    A[Landing Screen: Sign In and Sign Up] --> B[Account Type Selection]
+    B --> C[Car Owner Flow]
+    B --> D[Garage Operator Flow]
+
+    C --> E[Car Owner Dashboard]
+    E --> F[Display Vehicle Data from UK GOV API]
+    F --> G[Show MOT, Tax, Registration, and More]
+    E --> H[Access AI Booking Assistant]
+    H --> I[Input Service Details and Preferred Times]
+    I --> J[Receive Appointment Recommendation]
+    J --> K[Select Appointment Slot]
+    K --> L[Confirm Booking via Secure Stripe Payment]
+    L --> M[Display Booking Confirmation]
+    E --> N[Use GPT Diagnostic Tool for Vehicle Issues]
+    E --> O[Open Messaging Center for Notifications via WhatsApp and SMS]
+
+    D --> P[Garage Operator Dashboard]
+    P --> Q[View and Manage Appointment Calendar]
+    P --> R[Handle Booking Management and Customer Data]
+    P --> S[Utilize Enhanced Messaging Tools]
+
+    A --> T[Admin Portal]
+    T --> U[Monitor App Performance and User Activity]
+    U --> V[Manage System Status and Analytics]
