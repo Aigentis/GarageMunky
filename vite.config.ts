@@ -8,6 +8,25 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api/vehicle-enquiry': {
+        target: 'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles',
+        changeOrigin: true,
+        rewrite: () => '',
+        configure: (proxy, _options) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Forward the API key from the original request
+            const apiKey = req.headers['x-api-key'];
+            if (apiKey) {
+              proxyReq.setHeader('x-api-key', apiKey);
+            } else if (process.env.VITE_DVLA_API_KEY) {
+              // Use environment variable as fallback
+              proxyReq.setHeader('x-api-key', process.env.VITE_DVLA_API_KEY);
+            }
+          });
+        }
+      }
+    }
   },
   plugins: [
     react(),

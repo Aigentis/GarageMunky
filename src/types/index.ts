@@ -24,6 +24,12 @@ export interface Vehicle {
   taxStatus: 'valid' | 'expired' | 'expiring_soon';
   taxExpiryDate: string;
   mileage: number;
+  vin?: string;
+  transmission?: string;
+  drivetrain?: string;
+  engine?: string;
+  horsepower?: number;
+  bodyType?: string;
   specs?: VehicleSpecs;
   image?: string;
   location?: string;
@@ -35,6 +41,25 @@ export interface VehicleSpecs {
   capacity?: string;
   seats?: number;
   features?: string[];
+  engine?: {
+    type: string;
+    cylinders: number;
+    displacement: number;
+    fuelType: string;
+    horsepower: number;
+    torque: number;
+  };
+  transmission?: {
+    type: string;
+    speeds: number;
+  };
+  dimensions?: {
+    doors: number;
+    length?: number;
+    width?: number;
+    height?: number;
+    wheelbase?: number;
+  };
 }
 
 export interface GarageLocation {

@@ -29,8 +29,10 @@ export const formatRegistration = (input: string): string => {
 };
 
 /**
- * Prepare a registration number for API requests by removing all spaces
+ * Prepare a registration number for API requests
+ * Removes spaces and special characters to conform to DVLA API requirements
  */
 export const cleanRegistrationForApi = (input: string): string => {
-  return input.toUpperCase().replace(/\s/g, '');
+  // Remove all spaces and special characters, convert to uppercase
+  return input.toUpperCase().replace(/[^A-Za-z0-9]/g, '');
 };

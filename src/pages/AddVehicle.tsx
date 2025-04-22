@@ -2,20 +2,24 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVehicles } from "../contexts/VehicleContext";
+import { useUser } from "../contexts/UserContext";
 import NavBar from "../components/NavBar";
 import { ArrowLeft } from "lucide-react";
-import DvlaApiKeyDialog from "../components/vehicle/DvlaApiKeyDialog";
 import VehicleRegistrationForm from "../components/vehicle/VehicleRegistrationForm";
+import VehicleDetailsForm from "../components/vehicle/VehicleDetailsForm";
 import { toast } from "sonner";
 import BackgroundWrapper from "../components/dashboard/BackgroundWrapper";
+import { Vehicle } from "../types";
 
 const AddVehicle = () => {
   const [searchStep, setSearchStep] = useState(true);
   const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [vehicleData, setVehicleData] = useState<Vehicle | null>(null);
   
-  const { fetchVehicleData } = useVehicles();
+  const { fetchVehicleData, updateVehicle } = useVehicles();
+  const { user } = useUser();
   const navigate = useNavigate();
 
   const handleSearch = async (registration: string) => {
@@ -29,11 +33,13 @@ const AddVehicle = () => {
     
     try {
       console.log(`Searching for vehicle with registration: ${registration}`);
-      const vehicleData = await fetchVehicleData(registration);
+      const result = await fetchVehicleData(registration);
       
-      if (vehicleData) {
-        toast.success(`Found vehicle: ${vehicleData.make} ${vehicleData.model || ''}`);
-        navigate(`/vehicles/${vehicleData.id}`);
+      if (result) {
+        // Found vehicle data, move to the details step
+        setVehicleData(result);
+        setSearchStep(false);
+        toast.success(`Found vehicle details for ${registration}`);
       } else {
         setError("Could not find vehicle details. Please check the registration number.");
       }
@@ -45,28 +51,62 @@ const AddVehicle = () => {
     }
   };
 
+  const handleSaveVehicle = async (vehicle: Vehicle) => {
+    if (!user) {
+      toast.error("You must be logged in to save a vehicle");
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      // Ensure the vehicle has the current user's ID
+      const updatedVehicle = {
+        ...vehicle,
+        ownerId: user.id
+      };
+      
+      // Update the vehicle in the context
+      updateVehicle(updatedVehicle);
+      
+      toast.success(`${updatedVehicle.make} ${updatedVehicle.model} added to your garage`);
+      
+      // Navigate to the vehicle details page
+      navigate(`/vehicles/${updatedVehicle.registration.replace(/\s+/g, '')}`);
+    } catch (error) {
+      console.error("Error saving vehicle:", error);
+      toast.error("Failed to save vehicle. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBack = () => {
+    setSearchStep(true);
+    setVehicleData(null);
+    setError(null);
+  };
+
   return (
     <BackgroundWrapper>
       <div className="gm-page-container">
         <header className="gm-page-header">
           <div className="flex items-center w-full justify-between">
             <button 
-              onClick={() => navigate(-1)}
+              onClick={() => searchStep ? navigate(-1) : handleBack()}
               className="gm-back-button"
+              aria-label="Go back"
             >
               <ArrowLeft size={24} />
             </button>
             
-            <h1 className="gm-header-title">Add Vehicle</h1>
+            <h1 className="gm-header-title">
+              {searchStep ? "Add Vehicle" : "Vehicle Details"}
+            </h1>
             
             {/* Empty div to balance the layout */}
             <div className="w-10"></div>
           </div>
-          
-          <DvlaApiKeyDialog 
-            dialogOpen={apiKeyDialogOpen} 
-            setDialogOpen={setApiKeyDialogOpen} 
-          />
         </header>
 
         <div className="gm-page-content px-4 py-6">
@@ -76,9 +116,17 @@ const AddVehicle = () => {
               searching={searching} 
               error={error} 
             />
+          ) : vehicleData ? (
+            <VehicleDetailsForm
+              vehicleData={vehicleData}
+              onSave={handleSaveVehicle}
+              onCancel={handleBack}
+              saving={saving}
+            />
           ) : (
-            <div>
-              {/* Vehicle details form would go here */}
+            <div className="text-center py-8">
+              <div className="w-12 h-12 border-4 border-t-primary border-gray-200 rounded-full animate-spin mx-auto"></div>
+              <p className="mt-3 text-gray-500">Loading vehicle data...</p>
             </div>
           )}
         </div>
