@@ -10,7 +10,7 @@ GarageMunky is a mobile application built to modernize vehicle management for ca
 
 - **Real-time Vehicle Data**: Access MOT status, tax details, registration information, and more via UK GOV APIs
 - **AI-Powered Booking Assistant**: Get intelligent scheduling recommendations based on vehicle maintenance history
-- **GPT-Powered Diagnostic Tool**: Diagnose vehicle issues through natural language conversation
+- **GPT-Powered Diagnostic Tool**: OBD-II WIFI interface along with LLM to Diagnose vehicle issues through natural language conversation using vehicles fault codes
 - **Secure Payments**: Process transactions safely with Stripe integration
 - **Multi-Channel Messaging**: Receive notifications via WhatsApp and SMS
 - **Garage Locator**: Find nearby garages with Google Maps integration
@@ -114,10 +114,8 @@ Contributions are welcome! Please follow these steps:
 
 This project is the intellectual property of Kelvin Lee. All rights reserved. No parts of this code may be copied or transferred without explicit written permission.
 
-## 📞 Contact
-
-For any inquiries, please reach out to the project maintainers at contact@garagemunky.com
-
+## 📞 Contact 
+For any inquiries, please reach out to the project maintainers at admin@aigenits.io
 ---
 
 © 2025 Kelvin Lee. All Rights Reserved. GarageMunky™ is a proprietary application with all associated code and assets fully protected under copyright law.
