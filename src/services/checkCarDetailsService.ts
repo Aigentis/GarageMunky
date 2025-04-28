@@ -73,7 +73,7 @@ export const getVehicleSpecs = async (registration: string): Promise<VehicleSpec
 
   try {
     // Clean the registration number - remove spaces and ensure uppercase
-    const cleanedReg = registration.replace(/\\s+/g, '').toUpperCase();
+    const cleanedReg = registration.replace(/\s+/g, '').toUpperCase();
     
     // For testing, ensure the registration contains the letter 'A'
     if (!cleanedReg.includes('A') && CHECK_CAR_DETAILS_API_KEY === '26a26d79495f77c52dbd8177eb7e108a') {
@@ -110,7 +110,7 @@ export const getVehicleImage = async (registration: string): Promise<VehicleImag
 
   try {
     // Clean the registration number - remove spaces and ensure uppercase
-    const cleanedReg = registration.replace(/\\s+/g, '').toUpperCase();
+    const cleanedReg = registration.replace(/\s+/g, '').toUpperCase();
     
     // For testing, ensure the registration contains the letter 'A'
     if (!cleanedReg.includes('A') && CHECK_CAR_DETAILS_API_KEY === '26a26d79495f77c52dbd8177eb7e108a') {
@@ -147,7 +147,7 @@ export const getVehicleMileage = async (registration: string): Promise<MileageRe
 
   try {
     // Clean the registration number - remove spaces and ensure uppercase
-    const cleanedReg = registration.replace(/\\s+/g, '').toUpperCase();
+    const cleanedReg = registration.replace(/\s+/g, '').toUpperCase();
     
     // For testing, ensure the registration contains the letter 'A'
     if (!cleanedReg.includes('A') && CHECK_CAR_DETAILS_API_KEY === '26a26d79495f77c52dbd8177eb7e108a') {
@@ -184,12 +184,13 @@ export const enhanceVehicleData = async (vehicle: Vehicle): Promise<Vehicle> => 
     }
 
     // Clean the registration number - remove spaces and ensure uppercase
-    const cleanedReg = vehicle.registration.replace(/\\s+/g, '').toUpperCase();
+    const cleanedReg = vehicle.registration.replace(/\s+/g, '').toUpperCase();
     
     // For testing, ensure the registration contains the letter 'A'
     if (!cleanedReg.includes('A') && CHECK_CAR_DETAILS_API_KEY === '26a26d79495f77c52dbd8177eb7e108a') {
       console.warn('Test API key limitation: Registration must contain the letter A');
-      return vehicle;
+      // Use mock data for testing when API key limitations apply
+      return getMockEnhancedData(vehicle);
     }
     
     let enhancedVehicle = { ...vehicle };
@@ -276,7 +277,11 @@ export const enhanceVehicleData = async (vehicle: Vehicle): Promise<Vehicle> => 
   }
 };
 
-// For demo/development purposes, create mock data based on the vehicle
+/**
+ * Generate enhanced mock data for a vehicle when API is not available or for testing
+ * @param vehicle Basic vehicle data
+ * @returns Enhanced vehicle with mock data
+ */
 export const getMockEnhancedData = (vehicle: Vehicle): Vehicle => {
   // Create enhanced vehicle with mock data based on the vehicle type
   const enhancedVehicle = {

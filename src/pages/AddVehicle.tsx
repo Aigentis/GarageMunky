@@ -6,13 +6,14 @@ import { useUser } from "../contexts/UserContext";
 import NavBar from "../components/NavBar";
 import { ArrowLeft } from "lucide-react";
 import VehicleRegistrationForm from "../components/vehicle/VehicleRegistrationForm";
-import VehicleDetailsForm from "../components/vehicle/VehicleDetailsForm";
+import VehicleDataEditForm from "../components/vehicle/VehicleDataEditForm";
 import { toast } from "sonner";
 import BackgroundWrapper from "../components/dashboard/BackgroundWrapper";
 import { Vehicle } from "../types";
 
 const AddVehicle = () => {
-  const [searchStep, setSearchStep] = useState(true);
+  // Step management: 1 = registration entry, 2 = edit vehicle data, 3 = confirmation
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +37,9 @@ const AddVehicle = () => {
       const result = await fetchVehicleData(registration);
       
       if (result) {
-        // Found vehicle data, move to the details step
+        // Found vehicle data, move to the edit step
         setVehicleData(result);
-        setSearchStep(false);
+        setCurrentStep(2);
         toast.success(`Found vehicle details for ${registration}`);
       } else {
         setError("Could not find vehicle details. Please check the registration number.");
@@ -82,7 +83,7 @@ const AddVehicle = () => {
   };
 
   const handleBack = () => {
-    setSearchStep(true);
+    setCurrentStep(1);
     setVehicleData(null);
     setError(null);
   };
@@ -93,7 +94,7 @@ const AddVehicle = () => {
         <header className="gm-page-header">
           <div className="flex items-center w-full justify-between">
             <button 
-              onClick={() => searchStep ? navigate(-1) : handleBack()}
+              onClick={() => currentStep === 1 ? navigate(-1) : handleBack()}
               className="gm-back-button"
               aria-label="Go back"
             >
@@ -101,7 +102,7 @@ const AddVehicle = () => {
             </button>
             
             <h1 className="gm-header-title">
-              {searchStep ? "Add Vehicle" : "Vehicle Details"}
+              {currentStep === 1 ? "Add Vehicle" : "Edit Vehicle Details"}
             </h1>
             
             {/* Empty div to balance the layout */}
@@ -110,14 +111,14 @@ const AddVehicle = () => {
         </header>
 
         <div className="gm-page-content px-4 py-6">
-          {searchStep ? (
+          {currentStep === 1 ? (
             <VehicleRegistrationForm 
               onSearch={handleSearch} 
               searching={searching} 
               error={error} 
             />
           ) : vehicleData ? (
-            <VehicleDetailsForm
+            <VehicleDataEditForm
               vehicleData={vehicleData}
               onSave={handleSaveVehicle}
               onCancel={handleBack}

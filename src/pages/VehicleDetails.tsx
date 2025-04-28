@@ -10,6 +10,7 @@ import { getTaxStatusDescription, getMotStatusDescription } from '../services/dv
 import BackgroundWrapper from '../components/dashboard/BackgroundWrapper';
 import EditVehicleDetailsForm from '../components/vehicle/EditVehicleDetailsForm';
 import DeleteVehicleButton from '../components/vehicle/DeleteVehicleButton';
+import PremiumVehicleData from '../components/vehicle/PremiumVehicleData';
 import { toast } from 'sonner';
 
 const VehicleDetails = () => {
@@ -18,6 +19,8 @@ const VehicleDetails = () => {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'diagnostics' | 'services'>('overview');
   const [showEditModal, setShowEditModal] = useState(false);
+  // For demo purposes, set isPremiumUser to false by default
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -149,6 +152,17 @@ const VehicleDetails = () => {
                   </div>
                 </div>
               )}
+              
+              {/* Premium Vehicle Data Section */}
+              <PremiumVehicleData 
+                vehicle={vehicle} 
+                isPremiumUser={isPremiumUser} 
+                onVehicleDataEnhanced={(enhancedVehicle) => {
+                  setVehicle(enhancedVehicle);
+                  updateVehicle(enhancedVehicle);
+                }}
+              />
+              
             </div>
           )}
           

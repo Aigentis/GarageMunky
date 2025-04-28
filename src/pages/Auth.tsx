@@ -158,12 +158,8 @@ const Auth: React.FC = () => {
           {step === 1 && (
             <div className="flex-1 flex flex-col justify-center items-center">
               <div className="mb-8 text-center">
-                <img 
-                  src="/images/garage-munky-logo.svg" 
-                  alt="GarageMunky Logo" 
-                  className="w-48 h-48 mx-auto mb-4" 
-                />
-                <p className="text-2xl font-medium">Your AI Assistant for Vehicles</p>
+                <h1 className="text-4xl font-bold mb-2">GarageMunky</h1>
+                <p className="text-2xl font-medium">Your Vehicles AI Assistant</p>
               </div>
           
               <form onSubmit={handleLogin} className="space-y-6 max-w-md mx-auto w-full bg-black/50 p-8 rounded-2xl border border-white/30">
@@ -255,12 +251,8 @@ const Auth: React.FC = () => {
           {step === 2 && (
             <div className="flex-1 flex flex-col justify-center items-center">
               <div className="mb-8 text-center">
-                <img 
-                  src="/images/garage-munky-logo.svg" 
-                  alt="GarageMunky Logo" 
-                  className="w-48 h-48 mx-auto mb-4" 
-                />
-                <p className="text-2xl font-medium">Your AI Assistant for Vehicles</p>
+                <h1 className="text-4xl font-bold mb-2">GarageMunky</h1>
+                <p className="text-2xl font-medium">Your Vehicles AI Assistant</p>
               </div>
               
               <form onSubmit={handleRegister} className="space-y-6 max-w-md mx-auto w-full bg-black/50 p-8 rounded-2xl border border-white/30">

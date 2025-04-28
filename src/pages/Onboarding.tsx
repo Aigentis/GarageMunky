@@ -1,13 +1,22 @@
-
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserRole } from "../types";
 import { useUser } from "../contexts/UserContext";
+import { useAuth } from "../contexts/AuthContext";
+import { useVehicles } from "../contexts/VehicleContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatRegistration } from "../utils/vehicleUtils";
 import UKNumberPlate from "@/components/vehicle/UKNumberPlate";
+import { toast } from "sonner";
+import appwriteService, { 
+  CAR_OWNERS_TEAM_ID, 
+  GARAGE_OPERATORS_TEAM_ID,
+  DATABASE_ID,
+  GARAGES_COLLECTION_ID
+} from "../services/appwrite";
+import { ID } from "appwrite";
 import { 
   Carousel,
   CarouselContent,
@@ -15,6 +24,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Vehicle } from "../types";
 
 const Onboarding = () => {
   const [step, setStep] = useState<number>(1);
@@ -24,9 +34,17 @@ const Onboarding = () => {
   const [role, setRole] = useState<UserRole | null>(null);
   const [currentSlide, setCurrentSlide] = useState<number>(0);
   const [registrationNumber, setRegistrationNumber] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [vehicleDetails, setVehicleDetails] = useState<Vehicle | null>(null);
+  const [postcode, setPostcode] = useState<string>("");
+  const [garagesList, setGaragesList] = useState<any[]>([]);
+  const [selectedGarage, setSelectedGarage] = useState<any | null>(null);
+  const [newGarageDetails, setNewGarageDetails] = useState<any | null>(null);
   
   const navigate = useNavigate();
   const { login, register } = useUser();
+  const { fetchVehicleData } = useVehicles();
 
   // Background images for each step - can be replaced later
   const bgImages = [
@@ -84,7 +102,7 @@ const Onboarding = () => {
     if (selectedRole === "car_owner") {
       setStep(3); // Show registration input step for car owners
     } else {
-      setStep(5); // Skip to registration form for garage operators
+      setStep(6); // Show garage search step for garage operators
     }
   };
 
@@ -93,17 +111,275 @@ const Onboarding = () => {
     setRegistrationNumber(formatted);
   };
 
-  const handleRegistrationContinue = () => {
-    setStep(5);
+  const handleRegistrationContinue = async () => {
+    if (registrationNumber.length < 3) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch vehicle data from DVLA API and enhance with CheckCarDetails API
+      toast.info('Fetching vehicle information...');
+      const vehicleData = await fetchVehicleData(registrationNumber);
+      
+      if (vehicleData) {
+        // Store vehicle data temporarily
+        setVehicleDetails(vehicleData);
+        toast.success('Vehicle found!');
+        
+        // Show account creation form
+        setStep(5);
+      } else {
+        // Handle case when vehicle data can't be fetched
+        setError("Could not find vehicle information. Please check the registration number.");
+        toast.error("Could not find vehicle information");
+      }
+    } catch (error) {
+      console.error("Error fetching vehicle data:", error);
+      setError("An error occurred while fetching vehicle information.");
+      toast.error("Error fetching vehicle data");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!role) return;
     
-    const success = await register(name, email, password, role);
-    if (success) {
-      navigate("/dashboard");
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Register user with Appwrite
+      toast.info('Creating your account...');
+      const user = await appwriteService.createAccount(email, password, name);
+      
+      if (user && user.$id) {
+        // Create user profile
+        await appwriteService.createUserProfile(user.$id, {
+          name,
+          email,
+          role,
+          createdAt: new Date().toISOString(),
+        });
+        
+        // Assign user to appropriate team based on role
+        let teamId = '';
+        switch (role) {
+          case "car_owner":
+            teamId = CAR_OWNERS_TEAM_ID;
+            break;
+          case "garage_operator":
+            teamId = GARAGE_OPERATORS_TEAM_ID;
+            break;
+          default:
+            teamId = CAR_OWNERS_TEAM_ID; // Default to car owner
+        }
+        
+        await appwriteService.assignUserToTeam(user.$id, teamId);
+        
+        // Save additional data based on role
+        if (role === "car_owner" && vehicleDetails) {
+          await saveVehicleToUserAccount(user.$id);
+        } else if (role === "garage_operator") {
+          if (selectedGarage) {
+            await claimExistingGarage(user.$id);
+          } else if (newGarageDetails) {
+            await createNewGarage(user.$id);
+          }
+        }
+        
+        toast.success('Account created successfully!');
+        
+        // Redirect based on role
+        if (role === "car_owner") {
+          navigate("/dashboard");
+        } else {
+          navigate("/garage/dashboard");
+        }
+      } else {
+        setError("Failed to create account. Please try again.");
+        toast.error("Account creation failed");
+      }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      setError(error.message || "Registration failed. Please try again.");
+      toast.error("Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Save vehicle to user account
+  const saveVehicleToUserAccount = async (userId: string) => {
+    if (!vehicleDetails) return;
+    
+    try {
+      // Create vehicle document in Appwrite
+      const savedVehicle = await appwriteService.createVehicle({
+        registration: vehicleDetails.registration,
+        make: vehicleDetails.make,
+        model: vehicleDetails.model,
+        year: vehicleDetails.year,
+        color: vehicleDetails.color,
+        fuelType: vehicleDetails.fuelType,
+        motStatus: vehicleDetails.motStatus,
+        motExpiryDate: vehicleDetails.motExpiryDate,
+        taxStatus: vehicleDetails.taxStatus,
+        taxExpiryDate: vehicleDetails.taxExpiryDate,
+        mileage: vehicleDetails.mileage,
+        image: vehicleDetails.image,
+        ownerId: userId
+      });
+      
+      console.log('Vehicle saved:', savedVehicle);
+      return savedVehicle;
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      throw error;
+    }
+  };
+  
+  // Handle postcode search for garages
+  const handlePostcodeSearch = async () => {
+    if (!postcode || postcode.length < 3) {
+      setError("Please enter a valid postcode");
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // First, check if we need to import MOT stations
+      const garagesCollection = await appwriteService.databases.listDocuments(
+        DATABASE_ID,
+        GARAGES_COLLECTION_ID,
+        []
+      );
+      
+      // If no garages exist, import them from the CSV file
+      if (garagesCollection.documents.length === 0) {
+        toast.info('Importing MOT stations data...');
+        
+        // Fetch the CSV file
+        const response = await fetch('/active-mot-stations.csv');
+        const csvData = await response.text();
+        
+        // Parse and import the data
+        const stations = parseMotStationsCsv(csvData);
+        await importMotStationsToAppwrite(stations);
+        
+        toast.success('MOT stations data imported successfully!');
+      }
+      
+      // Search for garages by postcode
+      const garages = await getGaragesByPostcode(postcode);
+      
+      if (garages.length > 0) {
+        setGaragesList(garages);
+        setStep(7); // Show garage selection step
+      } else {
+        setError("No garages found with that postcode. Please try another postcode or create a new garage.");
+      }
+    } catch (error) {
+      console.error('Error searching for garages:', error);
+      setError("An error occurred while searching for garages. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle garage selection
+  const handleGarageSelection = (garage: any = null) => {
+    setSelectedGarage(garage);
+    
+    if (garage) {
+      toast.info(`Selected ${garage.name}`);
+      setStep(5); // Go to account creation
+    } else {
+      setStep(6); // New garage form
+    }
+  };
+  
+  // Handle new garage form submission
+  const handleNewGarageSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Get form data
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    
+    const garageData = {
+      name: formData.get('name') as string,
+      address: formData.get('address') as string,
+      postcode: formData.get('postcode') as string,
+      phone: formData.get('phone') as string,
+      email: formData.get('email') as string,
+      services: []
+    };
+    
+    setNewGarageDetails(garageData);
+    toast.success('Garage details saved');
+    setStep(5); // Go to account creation
+  };
+  
+  // Claim existing garage
+  const claimExistingGarage = async (userId: string) => {
+    if (!selectedGarage) return false;
+    
+    try {
+      toast.info(`Claiming ${selectedGarage.name}...`);
+      
+      // Update garage with new owner
+      await appwriteService.databases.updateDocument(
+        DATABASE_ID,
+        GARAGES_COLLECTION_ID,
+        selectedGarage.$id,
+        {
+          ownerId: userId,
+          claimed: true,
+          updatedAt: new Date().toISOString()
+        }
+      );
+      
+      toast.success('Garage claimed successfully');
+      return true;
+    } catch (error) {
+      console.error("Error claiming garage:", error);
+      toast.error("Failed to claim garage");
+      return false;
+    }
+  };
+  
+  // Create new garage
+  const createNewGarage = async (userId: string) => {
+    if (!newGarageDetails) return false;
+    
+    try {
+      toast.info('Creating your garage...');
+      
+      // Create new garage
+      await appwriteService.databases.createDocument(
+        DATABASE_ID,
+        GARAGES_COLLECTION_ID,
+        ID.unique(),
+        {
+          ...newGarageDetails,
+          ownerId: userId,
+          claimed: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      );
+      
+      toast.success('Garage created successfully');
+      return true;
+    } catch (error) {
+      console.error("Error creating garage:", error);
+      toast.error("Failed to create garage");
+      return false;
     }
   };
 
@@ -136,20 +412,11 @@ const Onboarding = () => {
             <>
               <div className="mt-6 flex justify-center">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-white/10 blur-xl rounded-full animate-pulse scale-125"></div>
-                  <div className="absolute inset-0 bg-white/10 blur-lg rounded-full animate-pulse opacity-40 scale-115 animate-[pulse_3s_ease-in-out_infinite]"></div>
-                  <div className="absolute inset-0 bg-white/15 blur-md rounded-full animate-[pulse_2s_ease-in-out_infinite] opacity-50 scale-105"></div>
-                  
-                  <div className="relative z-10">
-                    <img 
-                      src="/lovable-uploads/c9d50f1a-2edd-4bde-b7e1-f44384dba0e6.png" 
-                      alt="GarageMunky Logo" 
-                      className="h-72 w-auto" 
-                      style={{ 
-                        filter: 'drop-shadow(0 0 5px rgba(255, 255, 255, 0.5))' 
-                      }}
-                    />
-                  </div>
+                  <img 
+                    src="/lovable-uploads/Logo3.png" 
+                    alt="GarageMunky Logo" 
+                    className="h-72 w-auto" 
+                  />
                 </div>
               </div>
               
@@ -212,7 +479,7 @@ const Onboarding = () => {
                   Already have an account?{" "}
                   <button 
                     className="underline font-medium"
-                    onClick={() => setStep(4)}
+                    onClick={() => navigate("/auth")}
                   >
                     Login
                   </button>
@@ -264,7 +531,7 @@ const Onboarding = () => {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 3 && role === "car_owner" && (
             <div className="flex-1 flex flex-col justify-center items-center">
               <h2 className="text-3xl font-bold mb-6 text-white">Enter Your Vehicle Details</h2>
               <p className="text-gray-300 mb-8 text-center">
@@ -292,11 +559,55 @@ const Onboarding = () => {
                   
                   <Button 
                     onClick={handleRegistrationContinue}
-                    disabled={registrationNumber.trim().length < 3}
+                    disabled={registrationNumber.trim().length < 3 || loading}
                     className="w-full mt-4 bg-primary text-primary-foreground py-6 text-lg"
                   >
-                    Next
+                    {loading ? 'Searching...' : 'Next'}
                   </Button>
+                  
+                  {error && (
+                    <div className="bg-red-500/20 border border-red-500 text-white p-3 rounded-lg mt-4">
+                      {error}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {step === 3 && role === "garage_operator" && (
+            <div className="flex-1 flex flex-col justify-center items-center">
+              <h2 className="text-3xl font-bold mb-6 text-white">Find Your Garage</h2>
+              <p className="text-gray-300 mb-8 text-center">
+                Enter your postcode to find and claim your garage
+              </p>
+              
+              <div className="w-full max-w-md bg-black/50 p-8 rounded-2xl border border-white/30">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="postcode" className="text-white">Postcode</Label>
+                    <Input
+                      id="postcode"
+                      value={postcode}
+                      onChange={(e) => setPostcode(e.target.value)}
+                      className="bg-white text-black text-xl py-6"
+                      placeholder="Enter postcode"
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={handlePostcodeSearch}
+                    disabled={postcode.trim().length < 5 || loading}
+                    className="w-full mt-4 bg-primary text-primary-foreground py-6 text-lg"
+                  >
+                    {loading ? 'Searching...' : 'Search'}
+                  </Button>
+                  
+                  {error && (
+                    <div className="bg-red-500/20 border border-red-500 text-white p-3 rounded-lg mt-4">
+                      {error}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -352,6 +663,121 @@ const Onboarding = () => {
             </div>
           )}
 
+          {/* Garage selection step for garage operators */}
+          {step === 4 && (
+            <div className="flex-1 flex flex-col justify-center items-center">
+              <h2 className="text-3xl font-bold mb-6 text-white">Select Your Garage</h2>
+              <p className="text-gray-300 mb-8 text-center">
+                Select your garage from the list or create a new one
+              </p>
+              
+              <div className="w-full max-w-md bg-black/50 p-8 rounded-2xl border border-white/30">
+                <div className="space-y-4">
+                  {garagesList.length > 0 ? (
+                    <div className="space-y-4">
+                      {garagesList.map((garage) => (
+                        <button
+                          key={garage.$id}
+                          onClick={() => handleGarageSelection(garage)}
+                          className="w-full text-left p-4 border border-white/30 rounded-lg hover:bg-white/10 transition-colors"
+                        >
+                          <h3 className="font-bold text-lg">{garage.name}</h3>
+                          <p className="text-sm text-gray-300">{garage.address}</p>
+                          <p className="text-sm text-gray-300">{garage.postcode}</p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-300">No garages found in this area</p>
+                  )}
+                  
+                  <Button 
+                    onClick={() => handleGarageSelection(null)}
+                    className="w-full mt-4 bg-primary text-primary-foreground py-6 text-lg"
+                  >
+                    Create New Garage
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* New garage form */}
+          {step === 6 && (
+            <div className="flex-1 flex flex-col justify-center items-center">
+              <h2 className="text-3xl font-bold mb-6 text-white">Create New Garage</h2>
+              <p className="text-gray-300 mb-8 text-center">
+                Enter your garage details to continue
+              </p>
+              
+              <form onSubmit={handleNewGarageSubmit} className="w-full max-w-md bg-black/50 p-8 rounded-2xl border border-white/30 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-white">Garage Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    className="bg-white text-black"
+                    placeholder="Enter garage name"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-white">Address</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    className="bg-white text-black"
+                    placeholder="Enter address"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="postcode" className="text-white">Postcode</Label>
+                  <Input
+                    id="postcode"
+                    name="postcode"
+                    className="bg-white text-black"
+                    placeholder="Enter postcode"
+                    defaultValue={postcode}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-white">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    className="bg-white text-black"
+                    placeholder="Enter phone number"
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-white">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    className="bg-white text-black"
+                    placeholder="Enter email"
+                    required
+                  />
+                </div>
+                
+                <Button 
+                  type="submit"
+                  className="w-full mt-4 bg-primary text-primary-foreground py-6 text-lg"
+                >
+                  Continue
+                </Button>
+              </form>
+            </div>
+          )}
+          
           {step === 5 && (
             <div className="flex-1 flex flex-col justify-center">
               <h2 className="text-3xl font-bold mb-8 text-center text-white">Create Account</h2>
@@ -393,11 +819,18 @@ const Onboarding = () => {
                   />
                 </div>
                 
+                {error && (
+                  <div className="bg-red-500/20 border border-red-500 text-white p-3 rounded-lg">
+                    {error}
+                  </div>
+                )}
+                
                 <button 
                   type="submit"
                   className="bg-primary text-primary-foreground font-semibold py-3 px-6 rounded-full w-full hover:opacity-90 transition-opacity"
+                  disabled={loading}
                 >
-                  Create Account
+                  {loading ? 'Creating Account...' : 'Create Account'}
                 </button>
                 
                 <p className="text-center text-white">

@@ -158,13 +158,12 @@ export const VehicleProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       setError('Failed to fetch vehicle data from DVLA API');
       console.error('DVLA API error:', error);
+      toast.error('Failed to fetch vehicle data');
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Fetch vehicle data from APIs (DVLA and Edmunds) or mock data
+  // Fetch vehicle data from DVLA API only (basic data)
   const fetchVehicleData = async (registration: string): Promise<Vehicle | null> => {
     setLoading(true);
     setError(null);
@@ -179,7 +178,7 @@ export const VehicleProvider = ({ children }: { children: ReactNode }) => {
         return existingVehicle;
       }
       
-      // Try to fetch from DVLA API first
+      // Try to fetch from DVLA API first - this is the basic data available to all users
       let vehicleData: Vehicle | null = null;
       
       try {
@@ -212,35 +211,19 @@ export const VehicleProvider = ({ children }: { children: ReactNode }) => {
           taxExpiryDate: '2024-09-30',
           mileage: 25000,
         };
-      }
-      
-      // If we still don't have vehicle data, return null
-      if (!vehicleData) {
-        setLoading(false);
-        return null;
-      }
-      
-      // Try to enhance the vehicle data with CheckCarDetails API
-      try {
-        toast.info('Fetching additional vehicle details...');
-        const enhancedVehicle = await enhanceVehicleData(vehicleData);
         
-        if (enhancedVehicle !== vehicleData) {
-          console.log('Enhanced vehicle data with CheckCarDetails API:', enhancedVehicle);
-          toast.success('Found additional vehicle details');
-          vehicleData = enhancedVehicle;
-        }
-      } catch (apiError) {
-        console.error('Failed to enhance vehicle data with CheckCarDetails API:', apiError);
-        // Continue with the data we have
+        // Add to local state
+        setVehicles([...vehicles, vehicleData]);
+        
+        console.log('Generated mock vehicle:', vehicleData);
+        setLoading(false);
+        return vehicleData;
       }
       
-      // Save the vehicle to Appwrite
-      if (vehicleData) {
+      // Save to Appwrite if user is logged in
+      if (userId) {
         try {
-          toast.info('Saving vehicle to your account...');
-          
-          // Create the vehicle in Appwrite
+          // Create vehicle in Appwrite
           const savedVehicle = await appwriteService.createVehicle({
             registration: vehicleData.registration,
             make: vehicleData.make,
@@ -257,31 +240,50 @@ export const VehicleProvider = ({ children }: { children: ReactNode }) => {
             ownerId: userId
           });
           
-          // Update the ID to use Appwrite's ID
           if (savedVehicle && savedVehicle.$id) {
-            vehicleData.id = savedVehicle.$id;
-            toast.success('Vehicle saved to your account');
+            // Update the vehicle with the Appwrite ID
+            const vehicleWithId = {
+              ...vehicleData,
+              id: savedVehicle.$id
+            };
+            
+            // Add to local state
+            setVehicles([...vehicles, vehicleWithId]);
+            
+            console.log('Vehicle saved to Appwrite:', vehicleWithId);
+            return vehicleWithId;
+          }
+        } catch (error: any) {
+          // Check if the error is due to missing collection
+          if (error.message && error.message.includes('Collection with the requested ID could not be found')) {
+            console.log('Vehicles collection does not exist yet. Please run the setup-appwrite script.');
+            toast.error('Database setup required. Please contact support.');
+          } else {
+            console.error('Failed to save vehicle to Appwrite:', error);
+            toast.error('Failed to save vehicle data');
           }
           
-          // Add the new vehicle to our state
-          const updatedVehicles = [...vehicles, vehicleData];
-          setVehicles(updatedVehicles);
+          // Generate a temporary ID for the vehicle
+          const tempVehicle = {
+            ...vehicleData,
+            id: 'temp_' + ID.unique()
+          };
           
-          console.log('Added new vehicle to Appwrite:', vehicleData);
-        } catch (saveError) {
-          console.error('Failed to save vehicle to Appwrite:', saveError);
-          toast.error('Failed to save vehicle to your account');
+          // Add to local state anyway so user can see their vehicle
+          setVehicles([...vehicles, tempVehicle]);
           
-          // Still add to local state even if Appwrite save fails
-          const updatedVehicles = [...vehicles, vehicleData];
-          setVehicles(updatedVehicles);
+          // Continue with the enhanced data even if saving to Appwrite fails
+          return tempVehicle;
         }
       }
       
+      // If we couldn't save to Appwrite, still return the vehicle data
+      setLoading(false);
       return vehicleData;
-    } catch (err) {
+    } catch (error) {
+      console.error('Error fetching vehicle data:', error);
       setError('Failed to fetch vehicle data');
-      console.error(err);
+      setLoading(false);
       return null;
     } finally {
       setLoading(false);
@@ -297,13 +299,11 @@ export const VehicleProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       
-      setLoading(true);
       try {
-        // Fetch user's vehicles from Appwrite
+        // Fetch vehicles from Appwrite
         const response = await appwriteService.getUserVehicles(userId);
         
-        if (response && response.documents) {
-          // Map Appwrite documents to Vehicle type
+        if (response && response.documents && response.documents.length > 0) {
           const fetchedVehicles = response.documents.map((doc: any) => ({
             id: doc.$id,
             registration: doc.registration,
@@ -326,17 +326,28 @@ export const VehicleProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setVehicles([]);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching vehicles from Appwrite:', err);
-        setError('Failed to fetch vehicles');
+        
+        // Check if the error is due to missing collection
+        if (err.message && err.message.includes('Collection with the requested ID could not be found')) {
+          console.log('Vehicles collection does not exist yet. This is normal for new installations.');
+          // Don't show error to user for this specific case
+          setError(null);
+        } else {
+          setError('Failed to fetch vehicles');
+        }
+        
         // Fall back to mock data in development
         if (import.meta.env.DEV) {
           setVehicles(mockVehicles.filter(v => v.ownerId === userId));
           console.log('Using mock vehicles data in development');
+        } else {
+          setVehicles([]);
         }
       } finally {
         setLoading(false);
-      }
+      }  
     };
     
     fetchVehicles();

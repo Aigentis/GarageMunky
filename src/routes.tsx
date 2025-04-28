@@ -45,7 +45,8 @@ export const AppRoutes = () => {
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<Navigate to="/onboarding" />} />
+      <Route path="/onboarding" element={<Onboarding />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/auth/failure" element={<Navigate to="/auth" />} />
@@ -53,7 +54,6 @@ export const AppRoutes = () => {
       
       {/* Protected routes for all authenticated users */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/vehicles" element={<VehiclesList />} />

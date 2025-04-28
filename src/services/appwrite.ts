@@ -13,18 +13,9 @@ client
   .setEndpoint(endpoint)
   .setProject(projectId);
 
-// Set API key for server-side operations
-if (apiKey) {
-  // Note: API keys should only be used in a secure server environment
-  // For client-side applications, use account sessions instead
-  // This is included for development purposes only
-  try {
-    // @ts-ignore - Appwrite types may not be up to date
-    client.setKey(apiKey);
-  } catch (error) {
-    console.error('Error setting API key:', error);
-  }
-}
+// Note: API keys should only be used in a secure server environment
+// For client-side applications, use account sessions instead
+// In Appwrite v17, client-side API keys are not supported for security reasons
 
 // Initialize Appwrite services
 export const account = new Account(client);
@@ -33,7 +24,7 @@ export const storage = new Storage(client);
 export const teams = new Teams(client);
 
 // Database and collection IDs
-export const DATABASE_ID = 'garagemunky';
+export const DATABASE_ID = '6806df7e002e3f1efde9';
 export const USERS_COLLECTION_ID = 'users';
 export const VEHICLES_COLLECTION_ID = 'vehicles';
 export const APPOINTMENTS_COLLECTION_ID = 'appointments';
@@ -466,11 +457,10 @@ export const assignUserToTeam = async (userId: string, teamId: string) => {
   try {
     // Using the correct method for Appwrite SDK v17.0.2
     return await teams.createMembership(
-      teamId,
-      {
-        userId: userId,
-        roles: ['member']
-      }
+      teamId,      // teamId
+      ['member'],  // roles
+      undefined,   // email (optional)
+      userId       // userId (optional)
     );
   } catch (error) {
     console.error('Error assigning user to team:', error);
